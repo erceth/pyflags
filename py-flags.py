@@ -16,24 +16,27 @@ class GameObject(pg.sprite.Sprite):
         self.image = pg.transform.scale(self.image, self.size)
         self.original_image = self.image
         self.rect = self.image.get_rect(center=position)
-        self.angle_speed = 0
+        self.angleSpeed = 0
         super(GameObject, self).__init__() # TODO: move to bottom of init?
         self.sprite = pg.sprite.RenderPlain((self))
         self.top = None
         self.bottom = None
         self.left = None
         self.right = None
+        self.radius = math.sqrt(((self.size[0]/2)**2) + ((self.size[1]/2**2)))
         self.updateSides()
+        self.preventMovement = Vector2(1, 1)
 
     def update(self):
-        if self.angle_speed != 0:
+        if self.angleSpeed != 0:
             # Rotate the direction vector and then the image.
-            self.direction.rotate_ip(self.angle_speed)
-            self.angle += self.angle_speed
+            self.direction.rotate_ip(self.angleSpeed)
+            self.angle = (self.angle + self.angleSpeed) % 360
             self.image = pg.transform.rotate(self.original_image, -self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
         # Update the position vector and the rect.
-        self.position += self.direction * self.speed
+        self.position += (self.direction.elementwise() * self.preventMovement) * self.speed
+        self.preventMovement = Vector2(1,1) # reset
         self.updateSides()
         self.rect.center = self.position
 
@@ -59,7 +62,7 @@ class Tank(GameObject):
 
       # specific to tank
       self.color = color
-      self.max_rotation = 4 # TODO read from game constant
+      self.max_rotation = 10 # TODO read from game constant
       self.destination = position
 
       super().__init__(image, position, size, direction, speed, angle)
@@ -67,11 +70,11 @@ class Tank(GameObject):
   def update(self):
     destVector = Vector2(self.destination[0] - self.position[0], self.destination[1] - self.position[1])
     angle = self.direction.angle_to(destVector)
-    if (angle > 180): # compensate for angle_to's inability to handle degrees > 360 or < -360
+    if (angle > 180): # compensate for angle_to picking the wrong direction in these cases
       angle = -360 + angle
     if (angle < -180):
       angle = 360 + angle
-    self.angle_speed = self.getMaxRotation(angle)
+    self.angleSpeed = self.getMaxRotation(angle)
     super().update()
   
   def getMaxRotation(self, desiredAngle):
@@ -86,7 +89,8 @@ class Tank(GameObject):
     self.destination = pos
   
   def fire(self):
-    bullet = Bullet(self.color, self.position, self.direction, self.angle)
+    frontOfTank = self.position + self.direction * self.radius * 1.75
+    bullet = Bullet(self.color, frontOfTank, self.direction, self.angle)
     return bullet
 
 class Bullet(GameObject):
@@ -136,28 +140,44 @@ def main():
             #     elif event.key == pg.K_DOWN:
             #         player.speed -= 1
             #     elif event.key == pg.K_LEFT:
-            #         player.angle_speed = -4
+            #         player.angleSpeed = -4
             #     elif event.key == pg.K_RIGHT:
-            #         player.angle_speed = 4
+            #         player.angleSpeed = 4
             # elif event.type == pg.KEYUP:
             #     if event.key == pg.K_LEFT:
-            #         player.angle_speed = 0
+            #         player.angleSpeed = 0
             #     elif event.key == pg.K_RIGHT:
-            #         player.angle_speed = 0
+            #         player.angleSpeed = 0
         screen.fill((30, 30, 30))
           
 
         
 
-        for obj1 in gameObjects:
+        for obj1 in gameObjects: # TODO: filter out sprites that can't move
           for obj2 in gameObjects:
             if obj1 is obj2: continue
-            if not(obj1.right < obj2.left or obj1.left > obj2.right or obj1.top > obj2.bottom or obj1.bottom < obj2.top): # LEFT OFF
-              print('hit')
+            southMove = obj1.bottom < obj2.top
+            eastMove = obj1.right < obj2.left
+            northMove = obj1.top > obj2.bottom
+            westMove = obj1.left > obj2.right
+            if not(northMove or eastMove or southMove or westMove): # LEFT OFF
+              handleHit(obj1, obj2, gameObjects, northMove, eastMove, southMove, westMove)
           obj1.update()
           obj1.getSprite().draw(screen)
 
         pg.display.flip()
+
+def handleHit(o1, o2, gameObjects, northMove, eastMove, southMove, westMove):
+  if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)):
+    gameObjects.remove(o1)
+    del o1
+  elif(isinstance(o1, Tank) and isinstance(o2, Obstacle)):
+    angle = (math.atan2(-(o2.position[0] - o1.position[0]), (o2.position[1] - o1.position[1])) * 180 / math.pi) % 360
+    print(angle)
+    if (angle <= 45 or angle > 315) or (angle <= 225 and angle > 135):
+      o1.preventMovement = Vector2(1,0)
+    elif (angle > 45 and angle <= 135) or (angle > 225 and angle <= 315):
+      o1.preventMovement = Vector2(0,1)
 
 if __name__ == '__main__':
     main()
