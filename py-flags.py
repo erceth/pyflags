@@ -20,12 +20,13 @@ class GameObject(pg.sprite.Sprite):
         super(GameObject, self).__init__() # TODO: move to bottom of init?
         self.sprite = pg.sprite.RenderPlain((self))
         self.top = None
+        self.right = None
         self.bottom = None
         self.left = None
-        self.right = None
+        self.preventDirection = {'up': False, 'right': False, 'down': False, 'left': False} # TODO: make sure I consistently do North East South West
         self.radius = math.sqrt(((self.size[0]/2)**2) + ((self.size[1]/2**2)))
         self.updateSides()
-        self.preventMovement = Vector2(1, 1)
+        self.markedForTermination = False
 
     def update(self):
         if self.angleSpeed != 0:
@@ -35,8 +36,9 @@ class GameObject(pg.sprite.Sprite):
             self.image = pg.transform.rotate(self.original_image, -self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
         # Update the position vector and the rect.
-        self.position += (self.direction.elementwise() * self.preventMovement) * self.speed
-        self.preventMovement = Vector2(1,1) # reset
+        newDirection = self._getPreventedDirection(self.direction)
+        self.position += newDirection * self.speed
+        self.preventDirection = {'up': False, 'right': False, 'down': False, 'left': False} # reset
         self.updateSides()
         self.rect.center = self.position
 
@@ -50,6 +52,25 @@ class GameObject(pg.sprite.Sprite):
       self.bottom = self.position[1] + halfHeight
       self.left = self.position[0] - halfWidth
       self.right = self.position[0] + halfWidth
+
+    def terminate(self):
+      self.markedForTermination = True
+
+    def _getPreventedDirection(self, direction): # TODO: comb through code and be consistent in not getters, setters, and private variables
+      x,y = direction
+      if(self.preventDirection['up']):
+        y = max(y,0)
+      if(self.preventDirection['right']):
+        x = min(x,0)
+      if(self.preventDirection['down']):
+        y = min(y,0)
+      if(self.preventDirection['left']):
+        x = max(x,0)
+      return Vector2((x,y))
+      
+
+    def preventMovement(self, direction):
+      self.preventDirection[direction] = True
 
 class Tank(GameObject):
   def __init__(self, color, position):
@@ -101,6 +122,13 @@ class Bullet(GameObject):
 
     super().__init__(image, position, size, direction, speed, angle)
 
+  def update(self):
+    x, y = self.position
+    if(x < 0 or x > 800 or y < 0 or y > 800): # TODO: replace number with map height and width constant
+      self.markedForTermination = True
+    super().update()
+
+
 class Obstacle(GameObject):
   def __init__(self, position):
     image = f'img/wall.png'
@@ -127,6 +155,7 @@ def main():
     done = False
     while not done:
         clock.tick(30)
+        print(len(gameObjects))
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 done = True
@@ -156,31 +185,33 @@ def main():
         for obj1 in gameObjects: # TODO: filter out sprites that can't move
           for obj2 in gameObjects:
             if obj1 is obj2: continue
-            southMove = obj1.bottom < obj2.top
-            eastMove = obj1.right < obj2.left
-            northMove = obj1.top > obj2.bottom
-            westMove = obj1.left > obj2.right
-            if not(northMove or eastMove or southMove or westMove): # LEFT OFF
-              handleHit(obj1, obj2, gameObjects, northMove, eastMove, southMove, westMove)
+            if not(obj1.top > obj2.bottom or obj1.right < obj2.left or obj1.bottom < obj2.top or obj1.left > obj2.right): # LEFT OFF
+              handleHit(obj1, obj2, gameObjects)
+          if(obj1.markedForTermination):
+            gameObjects.remove(obj1)
+            del obj1
+            continue
           obj1.update()
           obj1.getSprite().draw(screen)
+          
 
         pg.display.flip()
 
-def handleHit(o1, o2, gameObjects, northMove, eastMove, southMove, westMove):
-  if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)):
-    gameObjects.remove(o1)
-    del o1
-  elif(isinstance(o1, Tank) and isinstance(o2, Obstacle)):
+def handleHit(o1, o2, gameObjects):
+  if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)): o1.terminate()
+  elif(isinstance(o1, Tank) and isinstance(o2, Obstacle) or isinstance(o1, Tank) and isinstance(o2, Tank)):
     angle = (math.atan2(-(o2.position[0] - o1.position[0]), (o2.position[1] - o1.position[1])) * 180 / math.pi) % 360
-    print(angle)
-    if (angle <= 45 or angle > 315) or (angle <= 225 and angle > 135):
-      o1.preventMovement = Vector2(1,0)
-    elif (angle > 45 and angle <= 135) or (angle > 225 and angle <= 315):
-      o1.preventMovement = Vector2(0,1)
+    if(angle <= 225 and angle > 135):
+      o1.preventMovement('up')
+    elif(angle > 225 and angle <= 315):
+      o1.preventMovement('right')
+    elif (angle <= 45 or angle > 315):
+      o1.preventMovement('down')
+    else: #(angle > 45 and angle <= 135):
+      o1.preventMovement('left')
 
 if __name__ == '__main__':
     main()
     pg.quit()
 
-# create other classes
+# LEFT OFF
