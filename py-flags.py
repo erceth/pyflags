@@ -3,11 +3,15 @@ import math
 import pygame as pg
 from pygame.math import Vector2
 
+screen = pg.display.set_mode((800, 800))
+
 class GameObject(pg.sprite.Sprite):
     def __init__(self, image, position, size, direction = (0, 0), speed = 0, angle = 0):
         self.image = image
         self.position = Vector2(position)
         self.size = size
+        self.halfHeight = (self.size[1] / 2)
+        self.halfWidth = (self.size[0] / 2)
         self.direction = Vector2(direction)
         self.speed = speed
         self.angle = angle
@@ -24,7 +28,7 @@ class GameObject(pg.sprite.Sprite):
         self.bottom = None
         self.left = None
         self.preventDirection = {'up': False, 'right': False, 'down': False, 'left': False} # TODO: make sure I consistently do North East South West
-        self.radius = math.sqrt(((self.size[0]/2)**2) + ((self.size[1]/2**2)))
+        self.radius = self.halfWidth/.7071 # cosine(45)
         self.updateSides()
         self.markedForTermination = False
 
@@ -46,12 +50,10 @@ class GameObject(pg.sprite.Sprite):
       return self.sprite
     
     def updateSides(self):
-      halfHeight = (self.size[1] / 2)
-      halfWidth = (self.size[0] / 2)
-      self.top = self.position[1] - halfHeight
-      self.bottom = self.position[1] + halfHeight
-      self.left = self.position[0] - halfWidth
-      self.right = self.position[0] + halfWidth
+      self.top = self.position[1] - self.halfHeight
+      self.bottom = self.position[1] + self.halfHeight
+      self.left = self.position[0] - self.halfWidth
+      self.right = self.position[0] + self.halfWidth
 
     def terminate(self):
       self.markedForTermination = True
@@ -73,7 +75,7 @@ class GameObject(pg.sprite.Sprite):
       self.preventDirection[direction] = True
 
 class Tank(GameObject):
-  def __init__(self, color, position):
+  def __init__(self, color, position, number):
       # general attributes
       image = f'img/{color}_tank.png'
       size = (50, 50) # TODO read from game constant
@@ -85,6 +87,10 @@ class Tank(GameObject):
       self.color = color
       self.max_rotation = 10 # TODO read from game constant
       self.destination = position
+      self.selected = False
+      self.number = number
+      self.font = pg.font.SysFont('Times New Roman', 32)
+      self.text = self.font.render(str(self.number), False, (0,234,0))
 
       super().__init__(image, position, size, direction, speed, angle)
   
@@ -97,6 +103,9 @@ class Tank(GameObject):
       angle = 360 + angle
     self.angleSpeed = self.getMaxRotation(angle)
     super().update()
+    if self.selected:
+      pg.draw.circle(screen, (0,234,0), self.position, self.radius, 1) # TODO: put select color as a CONST
+    screen.blit(self.text, (self.position[0], self.position[1] + self.radius))
   
   def getMaxRotation(self, desiredAngle):
     if (desiredAngle > self.max_rotation): # TODO create constant max turn variable
@@ -110,9 +119,15 @@ class Tank(GameObject):
     self.destination = pos
   
   def fire(self):
-    frontOfTank = self.position + self.direction * self.radius * 1.75
+    frontOfTank = self.position + self.direction * self.radius
     bullet = Bullet(self.color, frontOfTank, self.direction, self.angle)
     return bullet
+  
+  def select(self):
+    self.selected = True
+
+  def unselect(self):
+    self.selected = False
 
 class Bullet(GameObject):
   def __init__(self, color, position, direction, angle):
@@ -136,47 +151,63 @@ class Obstacle(GameObject):
 
     super().__init__(image, position, size)
 
+selectLast = -500
+selectedTanks = set()
+
+def selectTank(tank):
+  global selectLast
+  global selectedTanks
+  gameTime = pg.time.get_ticks()
+  if gameTime - selectLast > 500:
+    selectLast = gameTime
+    for t in selectedTanks:
+      t.unselect()
+    selectedTanks.clear()
+  selectedTanks.add(tank)
+  tank.select()
+              
 
 def main():
     pg.init()
-    screen = pg.display.set_mode((800, 800))
+    #screen = pg.display.set_mode((800, 800)) # TODO: restore
     # One time paint
-    o2 = Obstacle((400, 400))
     
 
-    gameObjects = [o2]
+    gameObjects = [Obstacle((350, 400)), Obstacle((400, 400)), Obstacle((450, 400))]
     
-    t1 = Tank(color = 'red', position = (50, 50))
+    
+    t1 = Tank(color = 'blue', position = (50, 50), number = 1)
+    t2 = Tank(color = 'blue', position = (0, 50), number = 2)
+    t3 = Tank(color = 'blue', position = (100, 50), number = 3)
     
 
     gameObjects.append(t1)
+    gameObjects.append(t2)
+    gameObjects.append(t3)
 
     clock = pg.time.Clock()
     done = False
     while not done:
         clock.tick(30)
-        print(len(gameObjects))
+        # print(len(gameObjects))
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 done = True
             if event.type == pg.MOUSEBUTTONDOWN:
               pos = pg.mouse.get_pos()
-              t1.setDestination(pos)
+              for t in selectedTanks:
+                t.setDestination(pos)
             elif event.type == pg.KEYDOWN:
               if event.key == pg.K_SPACE:
-                  bullet = t1.fire()
+                for t in selectedTanks:
+                  bullet = t.fire()
                   gameObjects.append(bullet)
-            #     elif event.key == pg.K_DOWN:
-            #         player.speed -= 1
-            #     elif event.key == pg.K_LEFT:
-            #         player.angleSpeed = -4
-            #     elif event.key == pg.K_RIGHT:
-            #         player.angleSpeed = 4
-            # elif event.type == pg.KEYUP:
-            #     if event.key == pg.K_LEFT:
-            #         player.angleSpeed = 0
-            #     elif event.key == pg.K_RIGHT:
-            #         player.angleSpeed = 0
+              if event.key == pg.K_1:
+                selectTank(t1)
+              if event.key == pg.K_2:
+                selectTank(t2)
+              if event.key == pg.K_3:
+                selectTank(t3)
         screen.fill((30, 30, 30))
           
 
@@ -200,7 +231,12 @@ def main():
 def handleHit(o1, o2, gameObjects):
   if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)): o1.terminate()
   elif(isinstance(o1, Tank) and isinstance(o2, Obstacle) or isinstance(o1, Tank) and isinstance(o2, Tank)):
-    angle = (math.atan2(-(o2.position[0] - o1.position[0]), (o2.position[1] - o1.position[1])) * 180 / math.pi) % 360
+    xDiff = o2.position[0] - o1.position[0]
+    yDiff = o2.position[1] - o1.position[1]
+    if abs(abs(xDiff) - abs(yDiff)) < 3: # ignore exact corner collision. work around
+      return
+    angle = (math.atan2(-(xDiff), (yDiff)) * 180 / math.pi) % 360
+    # print(angle)
     if(angle <= 225 and angle > 135):
       o1.preventMovement('up')
     elif(angle > 225 and angle <= 315):
