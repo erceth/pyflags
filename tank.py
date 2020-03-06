@@ -2,46 +2,65 @@ import pygame as pg
 from gameObject import GameObject
 from pygame.math import Vector2
 from bullet import Bullet
+import math
+import gameConsts
+import random
+
+screen = gameConsts.screen
 
 class Tank(GameObject):
-  def __init__(self, color, position, number, screen):
+  def __init__(self, color, position, number):
       # general attributes
       image = f'img/{color}_tank.png'
-      size = (50, 50) # TODO read from game constant
-      direction = (1,0) # TODO randomize
-      speed = 4 # TODO read from game constant
-      angle = 0 # TODO randomize
+      size = gameConsts.TANK_SIZE
+      direction = (1,0) # direction the image naturally faces
+      speed = gameConsts.TANK_MAX_SPEED
+      angle = 0
 
       # specific to tank
       self.color = color
-      self.max_rotation = 10 # TODO read from game constant
       self.destination = position
       self.selected = False
-      self.number = number
-      self.font = pg.font.SysFont('Times New Roman', 32)
-      self.text = self.font.render(str(self.number), False, (0,234,0))
-      self.screen = screen
+      self.font = pg.font.SysFont(gameConsts.TANK_FONT, gameConsts.TANK_FONT_SIZE)
+      self.text = self.font.render(str(number), False, gameConsts.SELECTED_COLOR)
 
       super().__init__(image, position, size, direction, speed, angle)
+
+      # start at random angle
+      randomAngle = random.randint(0, 360)
+      self.direction.rotate_ip(randomAngle)
+      self.angle = round((self.angle + randomAngle) % 360, 2)
+      self.image = pg.transform.rotate(self.original_image, -self.angle)
+      self.rect = self.image.get_rect(center=self.rect.center)
   
   def update(self):
-    destVector = Vector2(self.destination[0] - self.position[0], self.destination[1] - self.position[1])
-    angle = self.direction.angle_to(destVector)
-    if (angle > 180): # compensate for angle_to picking the wrong direction in these cases
-      angle = -360 + angle
-    if (angle < -180):
-      angle = 360 + angle
-    self.angleSpeed = self.getMaxRotation(angle)
+    xDiff = self.destination[0] - self.position[0]
+    yDiff = self.destination[1] - self.position[1]
+    if(abs(xDiff) > 1 and abs(yDiff) > 1): # if at destination, don't calc angleSpeed
+      destVector = Vector2(xDiff, yDiff)
+      destAngle = round(self.direction.angle_to(destVector), 2)
+      if (destAngle > 180): # compensate for destAngle_to picking the wrong direction in these cases
+        destAngle = -360 + destAngle
+      if (destAngle < -180):
+        destAngle = 360 + destAngle
+      self.angleSpeed = round(self.getMaxRotation(destAngle), 2)
+
+    distance = math.hypot(self.position[0] - self.destination[0], self.position[1] - self.destination[1])
+    if distance < self.radius:
+      self.speed = round(4 * distance / self.radius, 2)
+    else:
+      self.speed = gameConsts.TANK_MAX_SPEED
     super().update()
     if self.selected:
-      pg.draw.circle(self.screen, (0,234,0), self.position, self.radius, 1) # TODO: put select color as a CONST
-    self.screen.blit(self.text, (self.position[0], self.position[1] + self.radius)) # TODO: don't pass screen to constructor, do this another way
+      pg.draw.circle(screen, gameConsts.SELECTED_COLOR, self.position, self.radius, 1)
+    # self.text = self.font.render(f'{str(self.angle)}-{str(self.direction)}', False, gameConsts.SELECTED_COLOR) # DEBUG
+    screen.blit(self.text, (self.position[0], self.position[1] + self.radius))
   
   def getMaxRotation(self, desiredAngle):
-    if (desiredAngle > self.max_rotation): # TODO create constant max turn variable
-      return self.max_rotation
-    elif (desiredAngle < -self.max_rotation):
-      return -self.max_rotation
+    if (desiredAngle > gameConsts.TANK_MAX_ROTATION):
+      return gameConsts.TANK_MAX_ROTATION
+    elif (desiredAngle < -gameConsts.TANK_MAX_ROTATION):
+      return -gameConsts.TANK_MAX_ROTATION
     else:
       return desiredAngle
 

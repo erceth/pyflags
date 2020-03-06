@@ -1,5 +1,6 @@
 import pygame as pg
 from pygame.math import Vector2
+import gameConsts
 
 class GameObject(pg.sprite.Sprite):
     def __init__(self, image, position, size, direction = (0, 0), speed = 0, angle = 0):
@@ -27,12 +28,13 @@ class GameObject(pg.sprite.Sprite):
         self.radius = self.halfWidth/.7071 # cosine(45)
         self.updateSides()
         self.markedForTermination = False
+        self.getSprite().draw(gameConsts.screen)
 
     def update(self):
         if self.angleSpeed != 0:
             # Rotate the direction vector and then the image.
             self.direction.rotate_ip(self.angleSpeed)
-            self.angle = (self.angle + self.angleSpeed) % 360
+            self.angle = round((self.angle + self.angleSpeed) % 360, 2)
             self.image = pg.transform.rotate(self.original_image, -self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
         # Update the position vector and the rect.

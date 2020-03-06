@@ -1,8 +1,8 @@
 from gameObject import GameObject
 
 class Obstacle(GameObject):
-  def __init__(self, position):
+  def __init__(self, position, size):
     image = f'img/wall.png'
-    size = (50, 50) # TODO read from game constant
+    size = (size, size)
 
     super().__init__(image, position, size)
