@@ -12,6 +12,7 @@ screen = pg.display.set_mode((MAP_WIDTH, MAP_HEIGHT))
 MAP_BACKGROUND = data['background']
 obstacles = data['obstacles']
 players = data['players']
+scoreboard = data['scoreboard']
 
 TANK_SIZE = (50, 50)
 TANK_MAX_SPEED = 4
@@ -23,3 +24,4 @@ FPS = 30
 SELECT_ADD_TIME = 500 # milliseconds
 BACKGROUND_COLOR = (59, 113, 55)
 BACKGROUND_SIZE = 120 # must be square
+FLAG_SIZE = 25

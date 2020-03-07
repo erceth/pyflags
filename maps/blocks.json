@@ -2,6 +2,12 @@
   "width": 800,
   "height": 800,
   "background": "img/grass(100x100).png",
+  "scoreboard": {
+    "x": 10,
+    "y": 600,
+    "height": 100,
+    "width" : 400
+  },
   "obstacles": [{
     "x": 300,
     "y": 300,
@@ -25,6 +31,13 @@
       "base": {
         "x": 60,
         "y": 60,
+        "size": 100
+      }
+    }, {
+      "color": "red",
+      "base": {
+        "x": 740,
+        "y": 740,
         "size": 100
       }
     }

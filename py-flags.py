@@ -4,6 +4,8 @@ from tank import Tank
 from bullet import Bullet
 from obstacle import Obstacle
 from base import Base
+from flag import Flag
+from scoreboard import Scoreboard
 import gameConsts
 
 screen = gameConsts.screen
@@ -13,6 +15,7 @@ selectedTanks = set()
 
 bg = pg.image.load(gameConsts.MAP_BACKGROUND)
 bg = pg.transform.scale(bg, (gameConsts.BACKGROUND_SIZE, gameConsts.BACKGROUND_SIZE))
+
 
 def selectTank(tank):
   global selectLast
@@ -31,66 +34,74 @@ def main():
     pg.init()
     gameObjects = []
 
+    scoreboard = Scoreboard(gameConsts.players)
+
     for o in gameConsts.obstacles:
       gameObjects.append(Obstacle((o['x'], o['y']), o['size']))
 
-    for p in gameConsts.players:
-      gameObjects.append(Base(p['color'], (p['base']['x'], p['base']['y']), p['base']['size']))
+    
     
     t1 = Tank(color = 'blue', position = (50, 50), number = 1)
     t2 = Tank(color = 'blue', position = (0, 50), number = 2)
     t3 = Tank(color = 'blue', position = (100, 50), number = 3)
-    
 
+
+
+    # after tanks puts them on top
+    for p in gameConsts.players:
+      gameObjects.append(Base(p['color'], (p['base']['x'], p['base']['y']), p['base']['size']))
+      gameObjects.append(Flag(p['color'], (p['base']['x'], p['base']['y']), gameConsts.FLAG_SIZE))
+    
     gameObjects.append(t1)
     gameObjects.append(t2)
     gameObjects.append(t3)
 
+
+
     clock = pg.time.Clock()
     done = False
     while not done:
-        clock.tick(gameConsts.FPS)
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                done = True
-            if event.type == pg.MOUSEBUTTONDOWN:
-              pos = pg.mouse.get_pos()
+      clock.tick(gameConsts.FPS)
+      for event in pg.event.get():
+          if event.type == pg.QUIT:
+              done = True
+          if event.type == pg.MOUSEBUTTONDOWN:
+            pos = pg.mouse.get_pos()
+            for t in selectedTanks:
+              t.setDestination(pos)
+          elif event.type == pg.KEYDOWN:
+            if event.key == pg.K_SPACE:
               for t in selectedTanks:
-                t.setDestination(pos)
-            elif event.type == pg.KEYDOWN:
-              if event.key == pg.K_SPACE:
-                for t in selectedTanks:
-                  bullet = t.fire()
-                  gameObjects.append(bullet)
-              if event.key == pg.K_1:
-                selectTank(t1)
-              if event.key == pg.K_2:
-                selectTank(t2)
-              if event.key == pg.K_3:
-                selectTank(t3)
-        # screen.fill(gameConsts.BACKGROUND_COLOR) # TODO: replace with grass
-        for x in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
-          for y in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
-            screen.blit(bg, (x,y))
+                bullet = t.fire()
+                gameObjects.append(bullet)
+            if event.key == pg.K_1:
+              selectTank(t1)
+            if event.key == pg.K_2:
+              selectTank(t2)
+            if event.key == pg.K_3:
+              selectTank(t3)
+      # screen.fill(gameConsts.BACKGROUND_COLOR) # TODO: replace with grass
+      for x in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
+        for y in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
+          screen.blit(bg, (x,y))
 
+      
+      scoreboard.update()
+      for obj1 in gameObjects:
+        for obj2 in gameObjects:
+          if obj1 is obj2: continue
+          if not(obj1.top > obj2.bottom or obj1.right < obj2.left or obj1.bottom < obj2.top or obj1.left > obj2.right):
+            handleHit(obj1, obj2, gameObjects)
+        if(obj1.markedForTermination):
+          gameObjects.remove(obj1)
+          del obj1
+          continue
+        if (isinstance(obj1, Tank)):
+          checkWalls(obj1)
+        obj1.update()
+        obj1.getSprite().draw(screen)
         
-
-        for obj1 in gameObjects:
-          for obj2 in gameObjects:
-            if obj1 is obj2: continue
-            if not(obj1.top > obj2.bottom or obj1.right < obj2.left or obj1.bottom < obj2.top or obj1.left > obj2.right):
-              handleHit(obj1, obj2, gameObjects)
-          if(obj1.markedForTermination):
-            gameObjects.remove(obj1)
-            del obj1
-            continue
-          if (isinstance(obj1, Tank)):
-            checkWalls(obj1)
-          obj1.update()
-          obj1.getSprite().draw(screen)
-          
-
-        pg.display.flip()
+      pg.display.flip()
 
 def handleHit(o1, o2, gameObjects):
   if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)): o1.terminate()
