@@ -68,7 +68,7 @@ class Tank(GameObject):
     self.destination = pos
   
   def fire(self):
-    frontOfTank = self.position + self.direction * self.radius
+    frontOfTank = self.position + self.direction * (self.radius + 10)
     bullet = Bullet(self.color, frontOfTank, self.direction, self.angle)
     return bullet
   

@@ -1,10 +1,19 @@
 import pygame as pg
 import sys
 import json
-map = sys.argv[1] # map
+import argparse
 
-with open (f'maps/{map}.json') as f:
+parser = argparse.ArgumentParser()
+parser.add_argument("map", type=str,
+                    help="Map to load, json file in map directory without extention Ex: blocks")
+parser.add_argument("-ff", "--friendlyFire", action="store_true",
+                    help="Turn on friendly fire")
+args = parser.parse_args()
+
+
+with open (f'maps/{args.map}.json') as f:
   data = json.load(f)
+
 
 MAP_WIDTH = data['width']
 MAP_HEIGHT = data['height']
@@ -25,3 +34,6 @@ SELECT_ADD_TIME = 500 # milliseconds
 BACKGROUND_COLOR = (59, 113, 55)
 BACKGROUND_SIZE = 120 # must be square
 FLAG_SIZE = 25
+FRIENDLY_FIRE = args.friendlyFire
+BULLET_SIZE = 6
+BULLET_SPEED = 10

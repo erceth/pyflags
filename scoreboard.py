@@ -9,10 +9,11 @@ class Scoreboard():
     self.score = {}
     self.x = gameConsts.scoreboard['x']
     self.y = gameConsts.scoreboard['y']
-    self.width =gameConsts.scoreboard['width']
-    self.height = gameConsts.scoreboard['height']
     for p in players:
       self.score[p['color']] = 0
+
+    self.width = gameConsts.TANK_FONT_SIZE * 5
+    self.height = (2 + len(self.score)) * gameConsts.TANK_FONT_SIZE
 
   def updateScore(self, playerColor, points):
     self.score[playerColor] = points
@@ -22,6 +23,6 @@ class Scoreboard():
     i = 0
     for key, s in self.score.items():
       self.text = self.font.render(f'{key}: {s}', False, (255,255,255))
-      screen.blit(self.text, (self.x + gameConsts.TANK_FONT_SIZE, self.y + (gameConsts.TANK_FONT_SIZE * i)))
+      screen.blit(self.text, (self.x + gameConsts.TANK_FONT_SIZE, self.y + gameConsts.TANK_FONT_SIZE + (gameConsts.TANK_FONT_SIZE * i)))
       i = i + 1
     

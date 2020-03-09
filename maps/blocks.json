@@ -4,9 +4,7 @@
   "background": "img/grass(100x100).png",
   "scoreboard": {
     "x": 10,
-    "y": 600,
-    "height": 100,
-    "width" : 400
+    "y": 600
   },
   "obstacles": [{
     "x": 300,

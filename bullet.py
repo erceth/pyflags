@@ -1,10 +1,12 @@
 from gameObject import GameObject
+import gameConsts
 
 class Bullet(GameObject):
   def __init__(self, color, position, direction, angle):
-    image = f'img/{color}_tank.png' # TODO make bullet pictures
-    size = (6, 6) # TODO read from game constant
-    speed = 10 # TODO read from game conts
+    self.color = color
+    image = f'img/{color}_tank.png'
+    size = (gameConsts.BULLET_SIZE, gameConsts.BULLET_SIZE)
+    speed = gameConsts.BULLET_SPEED
 
     super().__init__(image, position, size, direction, speed, angle)
 

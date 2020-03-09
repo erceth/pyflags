@@ -105,7 +105,7 @@ def main():
 
 def handleHit(o1, o2, gameObjects):
   if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)): o1.terminate()
-  elif(isinstance(o1, Tank) and isinstance(o2, Obstacle) or isinstance(o1, Tank) and isinstance(o2, Tank)):
+  if(isinstance(o1, Tank) and isinstance(o2, Obstacle) or isinstance(o1, Tank) and isinstance(o2, Tank)):
     xDiff = o2.position[0] - o1.position[0]
     yDiff = o2.position[1] - o1.position[1]
     if abs(abs(xDiff) - abs(yDiff)) < 3: # ignore exact corner collision. work around
@@ -120,6 +120,9 @@ def handleHit(o1, o2, gameObjects):
       o1.preventMovement('down')
     else: #(angle > 45 and angle <= 135):
       o1.preventMovement('left')
+  if(isinstance(o1, Bullet) and isinstance(o2, Tank) and (o1.color != o2.color or gameConsts.FRIENDLY_FIRE)):
+    o1.terminate()
+    o2.terminate()
 
 def checkWalls(obj):
   if(obj.top <= 0):
