@@ -24,7 +24,7 @@ players = data['players']
 scoreboard = data['scoreboard']
 
 TANK_SIZE = (50, 50)
-TANK_MAX_SPEED = 4
+TANK_MAX_SPEED = 8
 TANK_MAX_ROTATION = 7
 TANK_FONT = 'Times New Roman'
 TANK_FONT_SIZE = 32

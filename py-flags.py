@@ -33,28 +33,29 @@ def selectTank(tank):
 def main():
     pg.init()
     gameObjects = []
+    selectableTanks = []
 
     scoreboard = Scoreboard(gameConsts.players)
 
     for o in gameConsts.obstacles:
       gameObjects.append(Obstacle((o['x'], o['y']), o['size']))
 
-    
-    
-    t1 = Tank(color = 'blue', position = (50, 50), number = 1)
-    t2 = Tank(color = 'blue', position = (0, 50), number = 2)
-    t3 = Tank(color = 'blue', position = (100, 50), number = 3)
-
-
-
     # after tanks puts them on top
     for p in gameConsts.players:
       gameObjects.append(Base(p['color'], (p['base']['x'], p['base']['y']), p['base']['size']))
-      gameObjects.append(Flag(p['color'], (p['base']['x'], p['base']['y']), gameConsts.FLAG_SIZE))
     
-    gameObjects.append(t1)
-    gameObjects.append(t2)
-    gameObjects.append(t3)
+    for p in gameConsts.players:
+      tankNum = 1 # TODO: replace with dictionary index?
+      for t in p['tanks']:
+        tank = Tank(color = p['color'], position=(t['position']['x'], t['position']['y'],), number = tankNum)
+        gameObjects.append(tank)
+        tankNum = tankNum + 1
+        if p['human']:
+          selectableTanks.append(tank)
+
+    # append flags after tanks so they are on top
+    for p in gameConsts.players:
+      gameObjects.append(Flag(p['color'], (p['base']['x'], p['base']['y']), gameConsts.FLAG_SIZE))
 
 
 
@@ -74,12 +75,12 @@ def main():
               for t in selectedTanks:
                 bullet = t.fire()
                 gameObjects.append(bullet)
-            if event.key == pg.K_1:
-              selectTank(t1)
+            if event.key == pg.K_1: # TODO: map K_1 to index of selectableTank array
+              selectTank(selectableTanks[0])
             if event.key == pg.K_2:
-              selectTank(t2)
+              selectTank(selectableTanks[1])
             if event.key == pg.K_3:
-              selectTank(t3)
+              selectTank(selectableTanks[2])
       # screen.fill(gameConsts.BACKGROUND_COLOR) # TODO: replace with grass
       for x in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
         for y in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
@@ -98,6 +99,13 @@ def main():
           continue
         if (isinstance(obj1, Tank)):
           checkWalls(obj1)
+          if obj1.respawn:
+            continue
+        if (isinstance(obj1, Flag)):
+          if obj1.pickedUp and obj1.pickedUpBy.respawn:
+            obj1.pickedUpBy.setFlag(None) 
+            obj1.dropped()
+
         obj1.update()
         obj1.getSprite().draw(screen)
         
@@ -122,7 +130,10 @@ def handleHit(o1, o2, gameObjects):
       o1.preventMovement('left')
   if(isinstance(o1, Bullet) and isinstance(o2, Tank) and (o1.color != o2.color or gameConsts.FRIENDLY_FIRE)):
     o1.terminate()
-    o2.terminate()
+    if isinstance(o2.flag, Flag):
+      o2.flag.dropped()
+      o2.setFlag(None)
+    o2.setRespawn(pg.time.get_ticks())
 
 def checkWalls(obj):
   if(obj.top <= 0):
@@ -138,4 +149,4 @@ if __name__ == '__main__':
     main()
     pg.quit()
 
-# LEFT OFF
+# LEFT OFF: why can't tank go through the right side of a tank?

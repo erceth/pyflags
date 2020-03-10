@@ -23,6 +23,9 @@ class Tank(GameObject):
       self.selected = False
       self.font = pg.font.SysFont(gameConsts.TANK_FONT, gameConsts.TANK_FONT_SIZE)
       self.text = self.font.render(str(number), False, gameConsts.SELECTED_COLOR)
+      self.flag = None
+      self.respawn = False
+      self.timeOfDeath = 0
 
       super().__init__(image, position, size, direction, speed, angle)
 
@@ -68,7 +71,8 @@ class Tank(GameObject):
     self.destination = pos
   
   def fire(self):
-    frontOfTank = self.position + self.direction * (self.radius + 10)
+    bulletRadius = gameConsts.BULLET_SIZE / 2 / math.cos(45)
+    frontOfTank = self.position + self.direction * (self.radius + bulletRadius + gameConsts.TANK_MAX_SPEED) # TANK_MAX_SPEED cases when tank postion is updated before bullet
     bullet = Bullet(self.color, frontOfTank, self.direction, self.angle)
     return bullet
   
@@ -77,3 +81,12 @@ class Tank(GameObject):
 
   def unselect(self):
     self.selected = False
+
+  def setFlag(self, flag):
+    self.flag = flag
+
+  def setRespawn(self, timeOfDeath):
+    self.respawn = True
+    self.timeOfDeath = timeOfDeath
+    self.position = Vector2((-gameConsts.TANK_SIZE[0], -gameConsts.TANK_SIZE[1])) # off screen
+    self.setDestination(self.position)

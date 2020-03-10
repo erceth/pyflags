@@ -1,6 +1,7 @@
 import pygame as pg
 from pygame.math import Vector2
 import gameConsts
+import math
 
 class GameObject(pg.sprite.Sprite):
     def __init__(self, image, position, size, direction = (0, 0), speed = 0, angle = 0):
@@ -25,7 +26,7 @@ class GameObject(pg.sprite.Sprite):
         self.bottom = None
         self.left = None
         self.preventDirection = {'up': False, 'right': False, 'down': False, 'left': False} # TODO: make sure I consistently do North East South West
-        self.radius = self.halfWidth/.7071 # cosine(45)
+        self.radius = self.halfWidth/math.cos(45) # length from center of a square to corner
         self.updateSides()
         self.markedForTermination = False
         self.getSprite().draw(gameConsts.screen)
