@@ -5,4 +5,7 @@ class Base(GameObject):
     image = f'img/{color}_basetop.png'
     size = (size, size)
 
+    # specific to Base
+    self.color = color
+
     super().__init__(image, position, size)

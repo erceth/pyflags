@@ -9,6 +9,7 @@ class Flag(GameObject):
     self.color = color
     self.pickedUpBy = None
     self.pickedUp = False
+    self.startingPosition = position
 
     super().__init__(image, position, size)
 
@@ -25,4 +26,8 @@ class Flag(GameObject):
     if self.pickedUp:
       self.position = self.pickedUpBy.position
     super().update()
+
+  def respawn(self):
+    self.position = self.startingPosition
+    self.updateSides()
     

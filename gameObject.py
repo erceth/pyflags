@@ -39,7 +39,7 @@ class GameObject(pg.sprite.Sprite):
             self.image = pg.transform.rotate(self.original_image, -self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
         # Update the position vector and the rect.
-        newDirection = self._getPreventedDirection(self.direction)
+        newDirection = self.getPreventedDirection(self.direction)
         self.position += newDirection * self.speed
         self.preventDirection = {'up': False, 'right': False, 'down': False, 'left': False} # reset
         self.updateSides()
@@ -57,7 +57,7 @@ class GameObject(pg.sprite.Sprite):
     def terminate(self):
       self.markedForTermination = True
 
-    def _getPreventedDirection(self, direction): # TODO: comb through code and be consistent in not getters, setters, and private variables
+    def getPreventedDirection(self, direction): # TODO: comb through code and be consistent in not getters, setters, and private variables
       x,y = direction
       if(self.preventDirection['up']):
         y = max(y,0)

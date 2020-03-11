@@ -20,12 +20,14 @@ class Tank(GameObject):
       # specific to tank
       self.color = color
       self.destination = position
+      self.startingPosition = position
       self.selected = False
       self.font = pg.font.SysFont(gameConsts.TANK_FONT, gameConsts.TANK_FONT_SIZE)
       self.text = self.font.render(str(number), False, gameConsts.SELECTED_COLOR)
       self.flag = None
       self.respawn = False
       self.timeOfDeath = 0
+      self.ghost = False
 
       super().__init__(image, position, size, direction, speed, angle)
 
@@ -53,6 +55,9 @@ class Tank(GameObject):
       self.speed = round(4 * distance / self.radius, 2)
     else:
       self.speed = gameConsts.TANK_MAX_SPEED
+    if (self.ghost and not(self.preventDirection['up'] or self.preventDirection['right'] or self.preventDirection['down'] or self.preventDirection['left'])):
+      self.ghost = False
+
     super().update()
     if self.selected:
       pg.draw.circle(screen, gameConsts.SELECTED_COLOR, self.position, self.radius, 1)
@@ -90,3 +95,11 @@ class Tank(GameObject):
     self.timeOfDeath = timeOfDeath
     self.position = Vector2((-gameConsts.TANK_SIZE[0], -gameConsts.TANK_SIZE[1])) # off screen
     self.setDestination(self.position)
+    self.updateSides()
+
+  def checkRespawn(self, currentTime):
+    if (currentTime > self.timeOfDeath + gameConsts.RESPAWN_TIME):
+      self.respawn = False;
+      self.position = self.startingPosition
+      self.setDestination(self.position)
+      self.ghost = True

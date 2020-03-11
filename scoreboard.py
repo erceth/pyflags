@@ -16,7 +16,7 @@ class Scoreboard():
     self.height = (2 + len(self.score)) * gameConsts.TANK_FONT_SIZE
 
   def updateScore(self, playerColor, points):
-    self.score[playerColor] = points
+    self.score[playerColor] += points
 
   def update(self):
     pg.draw.rect(screen, (10,10,10,25), (self.x, self.y, self.width, self.height))

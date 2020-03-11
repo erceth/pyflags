@@ -8,10 +8,11 @@ from flag import Flag
 from scoreboard import Scoreboard
 import gameConsts
 
+pg.init()
 screen = gameConsts.screen
-
 selectLast = -gameConsts.SELECT_ADD_TIME # negative to allow immediate select
 selectedTanks = set()
+scoreboard = Scoreboard(gameConsts.players)
 
 bg = pg.image.load(gameConsts.MAP_BACKGROUND)
 bg = pg.transform.scale(bg, (gameConsts.BACKGROUND_SIZE, gameConsts.BACKGROUND_SIZE))
@@ -31,11 +32,9 @@ def selectTank(tank):
               
 
 def main():
-    pg.init()
     gameObjects = []
     selectableTanks = []
-
-    scoreboard = Scoreboard(gameConsts.players)
+    allTanks = []
 
     for o in gameConsts.obstacles:
       gameObjects.append(Obstacle((o['x'], o['y']), o['size']))
@@ -50,6 +49,7 @@ def main():
         tank = Tank(color = p['color'], position=(t['position']['x'], t['position']['y'],), number = tankNum)
         gameObjects.append(tank)
         tankNum = tankNum + 1
+        allTanks.append(tank)
         if p['human']:
           selectableTanks.append(tank)
 
@@ -61,6 +61,8 @@ def main():
 
     clock = pg.time.Clock()
     done = False
+    nextTick = 0
+
     while not done:
       clock.tick(gameConsts.FPS)
       for event in pg.event.get():
@@ -100,6 +102,7 @@ def main():
         if (isinstance(obj1, Tank)):
           checkWalls(obj1)
           if obj1.respawn:
+            obj1.checkRespawn(pg.time.get_ticks())
             continue
         if (isinstance(obj1, Flag)):
           if obj1.pickedUp and obj1.pickedUpBy.respawn:
@@ -109,11 +112,23 @@ def main():
         obj1.update()
         obj1.getSprite().draw(screen)
         
+      currentTick = pg.time.get_ticks()
+      if (currentTick > nextTick ):
+        nextTick = currentTick + gameConsts.ONE_SECOND
+        for t in allTanks:
+          if (isinstance(t.flag, Flag)):
+            scoreboard.updateScore(t.color, gameConsts.POINTS_CARRYING_FLAG)
+
+
       pg.display.flip()
 
 def handleHit(o1, o2, gameObjects):
+  o1Tank = isinstance(o1, Tank)
+  o2Tank = isinstance(o2, Tank)
   if(isinstance(o1, Bullet) and isinstance(o2, Obstacle)): o1.terminate()
-  if(isinstance(o1, Tank) and isinstance(o2, Obstacle) or isinstance(o1, Tank) and isinstance(o2, Tank)):
+  if(o1Tank and isinstance(o2, Obstacle) or o1Tank and o2Tank):
+    if (o1.ghost and o2Tank or o2Tank and o2.ghost): # recently respawn tanks can drive through other tanks
+      return
     xDiff = o2.position[0] - o1.position[0]
     yDiff = o2.position[1] - o1.position[1]
     if abs(abs(xDiff) - abs(yDiff)) < 3: # ignore exact corner collision. work around
@@ -128,12 +143,24 @@ def handleHit(o1, o2, gameObjects):
       o1.preventMovement('down')
     else: #(angle > 45 and angle <= 135):
       o1.preventMovement('left')
-  if(isinstance(o1, Bullet) and isinstance(o2, Tank) and (o1.color != o2.color or gameConsts.FRIENDLY_FIRE)):
+  if(isinstance(o1, Bullet) and o2Tank and (o1.color != o2.color or gameConsts.FRIENDLY_FIRE)):
     o1.terminate()
     if isinstance(o2.flag, Flag):
       o2.flag.dropped()
       o2.setFlag(None)
     o2.setRespawn(pg.time.get_ticks())
+  if(o1Tank and isinstance(o2, Flag) and (o1.color != o2.color)):
+    o1.setFlag(o2)
+    o2.setPickedUp(o1)
+  if(o1Tank and isinstance(o2, Base) and isinstance(o1.flag, Flag) and o1.color == o2.color):
+    scoreboard.updateScore(o1.color, gameConsts.POINTS_RETURNING_FLAG)
+    o1.flag.respawn()
+    o1.flag.dropped()
+    o1.setFlag(None)
+
+
+
+
 
 def checkWalls(obj):
   if(obj.top <= 0):
@@ -148,5 +175,3 @@ def checkWalls(obj):
 if __name__ == '__main__':
     main()
     pg.quit()
-
-# LEFT OFF: why can't tank go through the right side of a tank?
