@@ -9,7 +9,7 @@ import random
 screen = gameConsts.screen
 
 class Tank(GameObject):
-  def __init__(self, color, position, number):
+  def __init__(self, color, position, number, addToGameObject):
       # general attributes
       image = f'img/{color}_tank.png'
       size = gameConsts.TANK_SIZE
@@ -28,6 +28,7 @@ class Tank(GameObject):
       self.respawn = False
       self.timeOfDeath = 0
       self.ghost = False
+      self.addToGameObject = addToGameObject
 
       super().__init__(image, position, size, direction, speed, angle)
 
@@ -79,7 +80,7 @@ class Tank(GameObject):
     bulletRadius = gameConsts.BULLET_SIZE / 2 / math.cos(45)
     frontOfTank = self.position + self.direction * (self.radius + bulletRadius + gameConsts.TANK_MAX_SPEED) # TANK_MAX_SPEED cases when tank postion is updated before bullet
     bullet = Bullet(self.color, frontOfTank, self.direction, self.angle)
-    return bullet
+    self.addToGameObject(bullet)
   
   def select(self):
     self.selected = True

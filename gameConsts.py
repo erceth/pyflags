@@ -24,7 +24,7 @@ players = data['players']
 scoreboard = data['scoreboard']
 
 TANK_SIZE = (50, 50)
-TANK_MAX_SPEED = 8
+TANK_MAX_SPEED = 4
 TANK_MAX_ROTATION = 7
 TANK_FONT = 'Times New Roman'
 TANK_FONT_SIZE = 32
@@ -41,3 +41,4 @@ RESPAWN_TIME = 5000
 POINTS_CARRYING_FLAG = 1
 POINTS_RETURNING_FLAG = 100
 ONE_SECOND = 1000
+AI_UPDATE_TIMEOUT = 333 # lower is more frequent

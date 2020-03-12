@@ -6,6 +6,7 @@ from obstacle import Obstacle
 from base import Base
 from flag import Flag
 from scoreboard import Scoreboard
+from artificialIntelligence import AI
 import gameConsts
 
 pg.init()
@@ -30,9 +31,12 @@ def selectTank(tank):
   selectedTanks.add(tank)
   tank.select()
               
+gameObjects = []
+def addToGameObject(go):
+  gameObjects.append(go)
 
 def main():
-    gameObjects = []
+    
     selectableTanks = []
     allTanks = []
 
@@ -46,7 +50,7 @@ def main():
     for p in gameConsts.players:
       tankNum = 1 # TODO: replace with dictionary index?
       for t in p['tanks']:
-        tank = Tank(color = p['color'], position=(t['position']['x'], t['position']['y'],), number = tankNum)
+        tank = Tank(color = p['color'], position=(t['position']['x'], t['position']['y'],), number = tankNum, addToGameObject = addToGameObject)
         gameObjects.append(tank)
         tankNum = tankNum + 1
         allTanks.append(tank)
@@ -57,14 +61,21 @@ def main():
     for p in gameConsts.players:
       gameObjects.append(Flag(p['color'], (p['base']['x'], p['base']['y']), gameConsts.FLAG_SIZE))
 
+    allAIPlayers = []
+    for p in gameConsts.players:
+      if not p['human']:
+        allAIPlayers.append(AI(p['color'], gameObjects))
+
 
 
     clock = pg.time.Clock()
     done = False
-    nextTick = 0
+    scoreboardNextTick = 0
+    aiNextTick = 0
 
     while not done:
       clock.tick(gameConsts.FPS)
+      currentTick = pg.time.get_ticks()
       for event in pg.event.get():
           if event.type == pg.QUIT:
               done = True
@@ -75,8 +86,7 @@ def main():
           elif event.type == pg.KEYDOWN:
             if event.key == pg.K_SPACE:
               for t in selectedTanks:
-                bullet = t.fire()
-                gameObjects.append(bullet)
+                t.fire()
             if event.key == pg.K_1: # TODO: map K_1 to index of selectableTank array
               selectTank(selectableTanks[0])
             if event.key == pg.K_2:
@@ -88,7 +98,11 @@ def main():
         for y in range(0, gameConsts.MAP_WIDTH, gameConsts.BACKGROUND_SIZE):
           screen.blit(bg, (x,y))
 
-      
+      if (currentTick > aiNextTick ):
+        aiNextTick = currentTick + gameConsts.AI_UPDATE_TIMEOUT
+        for ai in allAIPlayers:
+          ai.control()
+
       scoreboard.update()
       for obj1 in gameObjects:
         for obj2 in gameObjects:
@@ -112,9 +126,8 @@ def main():
         obj1.update()
         obj1.getSprite().draw(screen)
         
-      currentTick = pg.time.get_ticks()
-      if (currentTick > nextTick ):
-        nextTick = currentTick + gameConsts.ONE_SECOND
+      if (currentTick > scoreboardNextTick ):
+        scoreboardNextTick = currentTick + gameConsts.ONE_SECOND
         for t in allTanks:
           if (isinstance(t.flag, Flag)):
             scoreboard.updateScore(t.color, gameConsts.POINTS_CARRYING_FLAG)
