@@ -9,6 +9,8 @@ import math
 SIGHT_ENEMY_RANGE = 600
 FIRE_ENEMY_RANGE = 300
 
+# This AI is probably be too difficult for human player to beat
+
 class AI():
   def __init__(self, color, gameObjects):
     self.color = color
@@ -21,7 +23,7 @@ class AI():
     for go in gameObjects:
       if (isinstance(go, Tank)):
         if go.color == self.color:
-          self.myTanks.append(AITank(go))
+          self.myTanks.append(go)
         else:
           self.enemyTanks.append(go)
       elif (isinstance(go, Flag)):
@@ -37,37 +39,31 @@ class AI():
 
   def control(self):
     for t in self.myTanks:
-      if (isinstance(t.tank.flag, Flag)):
-        t.target = None
-        t.tank.setDestination(self.myBase.position)
-        return
+      if (t.respawn):
+        continue
+      if (isinstance(t.flag, Flag)):
+        t.setDestination(self.myBase.position)
+        continue
+
+      # find closest tank
       tankTarget = {'dist': math.inf, 'enemyTank': None}
       for e in self.enemyTanks:
-        dist = math.hypot(e.position[0] - t.tank.position[0], e.position[1] - t.tank.position[1])
-        if (not e.respawn and dist < SIGHT_ENEMY_RANGE and dist < tankTarget['dist']):
+        dist = math.hypot(e.position[0] - t.position[0], e.position[1] - t.position[1])
+        if (not e.respawn and dist < tankTarget['dist']):
           tankTarget['enemyTank'] = e
           tankTarget['dist'] = dist
-        if(tankTarget['enemyTank'] is not None):
-          t.tank.setDestination(tankTarget['enemyTank'].position)
-          if(tankTarget['dist'] < FIRE_ENEMY_RANGE):
-            t.tank.fire()
-          return
-          
-          
-        
 
-
-
-
-      if (t.target == None):
-        t.target = random.choice(self.enemyFlags)
+      random.shuffle(self.enemyFlags)
+      attackMode = True
       for f in self.enemyFlags:
-        t.tank.setDestination(f.position)
+        if(f.pickedUpBy is None):
+          t.setDestination(f.position)
+          attackMode = False
+          continue
 
 
-class AITank():
-  def __init__(self, tank):
-    self.target = None
-    self.tank = tank
-  def setTarget(self, t):
-    self.target = t
+      if((tankTarget['enemyTank'] is not None and (dist < SIGHT_ENEMY_RANGE or attackMode))):
+        t.setDestination(tankTarget['enemyTank'].position)
+        if(tankTarget['dist'] < FIRE_ENEMY_RANGE):
+          t.fire()
+        continue
